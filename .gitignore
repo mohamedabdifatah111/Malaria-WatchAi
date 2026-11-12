@@ -37,3 +37,7 @@ data/raw/species/*
 *.part
 *.egg-info/
 .pytest_cache/
+
+# ML pipeline: generated artefacts are rebuilt by `python -m ml.src.pipeline`
+ml/outputs/*
+!ml/outputs/.gitkeep
