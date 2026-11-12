@@ -1,5 +1,6 @@
 """Fetch layer: manifest contract, hash-checked caching, DATA.md coverage."""
 import csv
+import time
 
 import pytest
 
@@ -34,6 +35,20 @@ def test_cache_detects_changed_file(tmp_manifest, tmp_path):
     f.write_bytes(b"tampered")
     assert not _common.is_cached("src", f)
     assert not _common.is_cached("unknown", f)
+
+
+def test_record_existing_keeps_access_time_when_unchanged(tmp_manifest, tmp_path):
+    f = tmp_path / "manual.csv"
+    f.write_text("a,b\n")
+    _common.record_existing(f, "manual", "manual", "CC0", 0)
+    first = _common.read_manifest()["manual"]["accessed_utc"]
+    time.sleep(1.1)  # access time has 1 s resolution
+    _common.record_existing(f, "manual", "manual", "CC0", 0)
+    assert _common.read_manifest()["manual"]["accessed_utc"] == first
+    f.write_text("a,b\n1,2\n")
+    time.sleep(1.1)
+    _common.record_existing(f, "manual", "manual", "CC0", 1)
+    assert _common.read_manifest()["manual"]["accessed_utc"] != first
 
 
 @pytest.mark.parametrize("sid", [

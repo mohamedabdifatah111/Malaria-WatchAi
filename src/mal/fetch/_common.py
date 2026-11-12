@@ -200,5 +200,13 @@ def save_records(records: Any, dest: Path,
 
 def record_existing(dest: Path, source_id: str, url: str, licence: str,
                     rows: int | None = None) -> None:
-    """Add a manifest row for a file produced locally (e.g. a computed composite)."""
-    write_manifest_row(source_id, url, sha256_file(dest), licence, rows)
+    """Add a manifest row for a file produced locally (e.g. a computed composite).
+
+    Leaves the row (and its access time) alone when the file is unchanged, so
+    re-runs don't create noisy diffs in data/manifest.csv.
+    """
+    sha = sha256_file(dest)
+    row = read_manifest().get(source_id)
+    if row and row["sha256"] == sha and row["rows"] == ("" if rows is None else str(rows)):
+        return
+    write_manifest_row(source_id, url, sha, licence, rows)
