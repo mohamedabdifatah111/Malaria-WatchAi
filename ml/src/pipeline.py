@@ -45,6 +45,31 @@ def _par():
     return {"rows": len(pop_at_risk.run())}
 
 
+def _priority():
+    from ml.src.models import survey_priority
+    p = survey_priority.run()
+    return {"districts": len(p), "top_by_country": p.groupby("country").head(1)[
+        ["country", "region_name"]].to_dict("records")}
+
+
+def _report():
+    from ml.src.evaluation import report
+    return report.run()
+
+
+def _dossiers():
+    from ml.src import dossier
+    out = {}
+    for place in dossier.DEMO_PLACES:
+        d = dossier.build(place)
+        if d["status"] == "ok":
+            dossier.save(d)
+            out[place] = d["grounding"]["grounded"]
+    if not all(out.values()):
+        raise RuntimeError(f"dossier facts not grounded: {out}")
+    return out
+
+
 def _species():
     from ml.src.species import species
     return {"rows": len(species.run())}
@@ -66,8 +91,8 @@ def _evidence():
 
 
 STAGES = {"surveys": _surveys, "features": _features, "evaluate": _evaluate, "predict": _predict,
-          "pop_at_risk": _par, "species": _species, "efficacy": _efficacy, "resistance": _resistance,
-          "evidence": _evidence}
+          "pop_at_risk": _par, "survey_priority": _priority, "species": _species, "efficacy": _efficacy,
+          "resistance": _resistance, "evidence": _evidence, "report": _report, "dossiers": _dossiers}
 
 
 def main(argv=None):

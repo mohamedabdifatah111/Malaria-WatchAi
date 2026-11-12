@@ -159,7 +159,19 @@ def resistance_lookup(place: str, marker: str | None = None, year: int | None = 
         r = r[r["marker"] == marker]
     if year:
         r = r[r["year"] == year]
+    from ml.src.resistance.markers import wilson_ci
+    summary = []
+    for m, g in r.groupby("marker"):
+        k, n = int(g["n_mutant"].sum()), int(g["n_tested"].sum())
+        lo, hi = wilson_ci([k], [n])
+        summary.append({"marker": m, "n_tested": n, "n_mutant": k, "pooled_frequency": k / n if n else None,
+                        "confidence_interval_lower": float(lo[0]), "confidence_interval_upper": float(hi[0]),
+                        "year_min": int(g["year"].min()), "year_max": int(g["year"].max()),
+                        "n_study_years": int(len(g)), "sources": sorted(g["source"].unique()),
+                        "evidence_ids": sorted({e for l in g["evidence_ids"] for e in l}),
+                        "note": "Crude pooled across sites and years; sites are not representative."})
     return {"status": "ok" if len(r) else "insufficient_data", "place": loc, "unit": "proportion of samples",
+            "summary": summary,
             "results": _records(r.sort_values(["marker", "year"])),
             "limitations": ["A resistance-marker frequency is not a treatment-failure rate.",
                             "Samples come from few sites; do not generalise one study to a country."]}

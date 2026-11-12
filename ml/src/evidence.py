@@ -41,6 +41,9 @@ DATASETS = {
                         ["Presence-only; cannot give prevalence or shares."]),
     "WHO-GHO": ("WHO Global Health Observatory malaria indicators", ("gho_malaria_",), "country_report",
                 ["Routine reported cases depend on testing and reporting."]),
+    "MIS-REPORTS": ("National Malaria Indicator Survey final reports (microscopy species tables, hand-entered)",
+                    ("mis_microscopy_manual",), "survey_report",
+                    ["National values transcribed from report tables; not applicable to districts."]),
     "WHO-REPORT-2020": ("WHO Report on antimalarial drug efficacy, resistance and response (2020)",
                         ("who_drug_efficacy_report_2020",), "report", []),
 }
@@ -87,7 +90,8 @@ def record_rows() -> list[dict]:
                      "publication_year": None, "parent_evidence_id": "MAP-PR-SURVEYS",
                      "license": "per MAP record permissions", "limitations": []})
     parents = (("PF7-", "PF7", "marker_study"), ("WHO-MTM-TES-", "WHO-MTM", "therapeutic_efficacy_study"),
-               ("WHO-MTM-MM-", "WHO-MTM", "marker_study"), ("WHO-GHO-", "WHO-GHO", "country_indicator"))
+               ("WHO-MTM-MM-", "WHO-MTM", "marker_study"), ("WHO-GHO-", "WHO-GHO", "country_indicator"),
+               ("MIS-", "MIS-REPORTS", "national_survey_report"))
     seen = {r["evidence_id"] for r in rows}
     for f in ("efficacy_studies.parquet", "marker_observations.parquet", "species.parquet"):
         d = pd.read_parquet(p / f)
@@ -114,7 +118,10 @@ def check_integrity(registry: pd.DataFrame) -> dict:
     p = config.processed_dir()
     missing = {}
     for f in ("prevalence_district.parquet", "pop_at_risk.parquet", "species.parquet", "efficacy_studies.parquet",
-              "efficacy_pooled.parquet", "marker_observations.parquet", "marker_trends.parquet"):
+              "efficacy_pooled.parquet", "marker_observations.parquet", "marker_trends.parquet",
+              "survey_priority.parquet"):
+        if not (p / f).exists():
+            continue
         d = pd.read_parquet(p / f)
         used = {e for l in d["evidence_ids"] if l is not None for e in l}
         bad = sorted(used - known)
