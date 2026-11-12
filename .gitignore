@@ -28,3 +28,12 @@ build/
 
 # Generated files
 *.log
+
+# Data fetch layer: only the manifest and the hand-entered MIS template are committed
+!data/manifest.csv
+!data/raw/species/
+data/raw/species/*
+!data/raw/species/mis_microscopy_manual.csv
+*.part
+*.egg-info/
+.pytest_cache/
