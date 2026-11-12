@@ -79,7 +79,9 @@ def test_species_presence_only_has_no_share():
     s = pd.read_parquet(P / "species.parquet")
     po = s[s["record_type"] == "presence_only"]
     assert po["share"].isna().all() and po["examined"].isna().all()
-    assert set(s["species"]) == {"P. falciparum", "P. vivax", "P. malariae", "P. ovale", "P. knowlesi"}
+    assert {"P. falciparum", "P. vivax", "P. malariae", "P. ovale", "P. knowlesi"} <= set(s["species"])
+    rep = s[s["record_type"] == "survey_report"]
+    assert rep["examined"].gt(0).all() and rep["region_id"].isna().all()  # national only, with denominator
 
 
 def test_every_evidence_id_resolves():

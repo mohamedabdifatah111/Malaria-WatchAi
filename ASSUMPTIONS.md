@@ -103,9 +103,36 @@ come from the pipeline run recorded in `data/processed/metrics.json` and
   cases only; they depend on testing and reporting completeness.
 - Microscopy under-detects low-density and mixed infections and misclassifies
   P. ovale / P. malariae / P. knowlesi.
-- P. malariae and P. ovale return `insufficient_data` until
-  `data/raw/species/mis_microscopy_manual.csv` is filled from MIS/DHS reports.
+- National microscopy species shares are hand-entered in
+  `data/raw/species/mis_microscopy_manual.csv` (values are % of microscopy-positive
+  people, with the report page). Entered: **Kenya MIS 2020, Table 4.9** (588
+  malaria-positive children 6 months-14 years: Pf only 75.9%, Pm only 3.7%, Po only
+  0.7%, mixed 19.6%, no P. vivax). These are national values and are never applied
+  to districts.
+- **Tanzania MIS 2017** tested by RDT only (Pf/Pan), which cannot identify
+  P. malariae or P. ovale - recorded as `insufficient_data` with that reason.
+  **Ethiopia**: no national microscopy species table has been entered yet.
 - No evidence was found for P. knowlesi in the three countries.
+
+## Survey priority (where to survey next)
+
+- Each ADM2 district gets one hypothetical survey at its population-weighted
+  centre; the reduction in sum(population x interval width) across all cells is
+  computed from the calibrated distance bands of the prevalence interval.
+- It reflects only the model's distance-based uncertainty. It ignores cost,
+  access, security, seasonality, altitude-based expert knowledge (e.g. Addis Ababa
+  ranks high because it is populous and far from open surveys, although
+  transmission there is low) and non-public programme data. It is a planning aid
+  for discussion, not a survey design.
+- 9 ADM2 districts smaller than one 5 km cell are not ranked.
+
+## AI briefing grounding
+
+- `check_brief` treats any number not present in tool results as unsupported,
+  including numbers the agent computed itself. Short numbers (1-2 significant
+  digits) may match a tool value by coincidence; they are labelled `weak` with the
+  matched field names for human review. The check does not verify wording, units
+  or which place a number belongs to - human approval remains required.
 
 ## Drug efficacy
 

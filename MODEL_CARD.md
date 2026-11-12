@@ -113,4 +113,11 @@ re-validation.
   In held-out-year and held-out-region validation the GLM did **not** beat the
   last-observed or country-average baselines; forecasts are therefore marked
   `not_recommended`, and the latest observed frequency should be preferred.
-- **Species:** evidence summary only (no model) - see `ASSUMPTIONS.md`.
+- **Species:** evidence summary only (no model), including Kenya MIS 2020 national
+  microscopy shares (P. malariae 3.7%, P. ovale 0.7% mono-infections among 588
+  positive children) - see `ASSUMPTIONS.md`.
+- **Survey priority:** districts ranked by the expected reduction in
+  population x prediction-interval width from one new survey, using this model's
+  calibrated distance bands. A planning aid, not a survey design.
+- **Grounding check:** AI briefings are blocked when they contain a number not
+  present in the tool results (`ml/src/grounding.py`).

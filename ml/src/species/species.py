@@ -127,12 +127,46 @@ def gbif_presence() -> pd.DataFrame:
     return g
 
 
+MIS_SPECIES = {"pf_only": "P. falciparum", "pm_only": "P. malariae", "po_only": "P. ovale",
+               "pv_only": "P. vivax", "mixed": "mixed infection"}
+
+
 def mis_microscopy() -> pd.DataFrame:
+    """National MIS/DHS microscopy species tables, hand-entered with report page.
+
+    Convention for data/raw/species/mis_microscopy_manual.csv: species columns are
+    the PERCENT of microscopy-positive people in the report table (mono-infections;
+    'mixed' = all mixed combinations), n_positive_microscopy is the table's
+    denominator. These are national values and are never applied to districts.
+    """
     p = config.raw_dir() / "species" / "mis_microscopy_manual.csv"
     if not p.exists():
         return pd.DataFrame()
     m = pd.read_csv(p)
-    return m  # header-only template at the time of writing; rows are hand-entered
+    m = m[m["country"].isin(config.countries())]
+    rows = []
+    for _, r in m.iterrows():
+        sid = f"MIS-{r['country']}-{int(r['year'])}"
+        for col, sp in MIS_SPECIES.items():
+            if pd.isna(r.get(col)):
+                continue
+            rows.append({"country": r["country"], "region_id": None, "admin_level": "ADM0", "species": sp,
+                         "record_type": "survey_report", "year": int(r["year"]), "year_start": int(r["year"]),
+                         "year_end": int(r["year"]), "examined": float(r["n_positive_microscopy"]),
+                         "value": float(r[col]), "share": float(r[col]) / 100.0,
+                         "value_unit": "% of microscopy-positive people (mono-infection unless 'mixed')",
+                         "share_definition": "share of microscopy-positive people in a national survey",
+                         "source": f"{r['survey']} - {r['page']}", "source_id": sid,
+                         "evidence_ids": ["MIS-REPORTS", sid], "status": "ok",
+                         "limitations": [LIM_MICRO, "National survey value; not applicable to districts.",
+                                         str(r["source_title"])]})
+    return pd.DataFrame(rows)
+
+
+RDT_ONLY_NOTES = {
+    "TZA": "Tanzania MIS 2017 tested children by RDT only (SD Bioline Pf/Pan), which cannot identify "
+           "P. malariae or P. ovale; no national microscopy species table was found in that report.",
+}
 
 
 def gaps(have: pd.DataFrame) -> pd.DataFrame:
@@ -140,14 +174,14 @@ def gaps(have: pd.DataFrame) -> pd.DataFrame:
     for c in config.countries():
         for sp in SPECIES:
             if have.empty or not ((have["country"] == c) & (have["species"] == sp)
-                                  & have["record_type"].isin(["survey", "country_report"])).any():
+                                  & have["record_type"].isin(["survey", "country_report", "survey_report"])).any():
                 lim = ["No denominator-bearing record for this species in the downloaded sources."]
                 if sp == "P. knowlesi":
                     lim.append("P. knowlesi is a zoonotic species reported mainly from Southeast Asia; "
                                "no evidence was found for this country.")
                 if sp in ("P. malariae", "P. ovale"):
-                    lim.append("Fill data/raw/species/mis_microscopy_manual.csv from MIS/DHS report "
-                               "microscopy tables to add country-level evidence.")
+                    lim.append(RDT_ONLY_NOTES.get(c, "Fill data/raw/species/mis_microscopy_manual.csv from "
+                                                     "MIS/DHS report microscopy tables to add evidence."))
                 rows.append({"country": c, "region_id": None, "admin_level": "ADM0", "species": sp,
                              "record_type": "no_evidence", "status": "insufficient_data",
                              "source": None, "source_id": None, "evidence_ids": [],
@@ -156,10 +190,7 @@ def gaps(have: pd.DataFrame) -> pd.DataFrame:
 
 
 def run() -> pd.DataFrame:
-    parts = [survey_records(), who_reported_cases(), gbif_presence()]
-    mis = mis_microscopy()
-    if len(mis):
-        log.warning("mis_microscopy_manual.csv has %d rows - not yet integrated; review format", len(mis))
+    parts = [survey_records(), who_reported_cases(), gbif_presence(), mis_microscopy()]
     have = pd.concat([p for p in parts if len(p)], ignore_index=True)
     out = pd.concat([have, gaps(have)], ignore_index=True).reindex(columns=COLUMNS)
     io.write_parquet(out, "species.parquet", {"rules": "presence_only rows never carry shares"})
