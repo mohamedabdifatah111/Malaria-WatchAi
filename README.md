@@ -15,6 +15,12 @@ platform for Kenya, Tanzania and Ethiopia.
 - Monitor environmental and weather conditions.
 - Generate evidence-grounded AI surveillance briefings.
 
+# Selected SDGs
+
+- SDG 3: Good Health and Well-being.Targeting malaria interventions and drug policy reviews.
+- SDG 10: Reduced Inequalities. Mapping uncertainty and rural burden to ensure fair resource allocation.
+- SDG 17: Partnerships for the Goals. Fusing open-access datasets.
+
 ## Technology Stack
 
 - Frontend: React + Tailwind CSS
@@ -33,10 +39,18 @@ platform for Kenya, Tanzania and Ethiopia.
 
 ## Intended Users
 
-Malaria programme planners, surveillance officers
-and public health researchers.
+- Malaria programme planners, surveillance officers and public health researchers.
 
 ## Important Notice
 
-This platform supports research and programme planning.
-It is not a diagnostic or treatment recommendation system.
+- This platform supports research and programme planning. It is not a diagnostic or treatment recommendation system.
+
+## Repository Structure & Documentation
+
+- DATA.md: Complete inventory of data sources, access dates, and licenses.
+- ASSUMPTIONS.md: Documentation of known sampling biases and modeling assumptions.
+- MODEL_CARD.md :Model performance metrics and limitations note.
+
+## Getting Started & Quickstart
+
+
