@@ -67,6 +67,59 @@ CLASSIFICATION_NOTE = {
 }
 
 
+PROVIDERS = {
+    "MAP-PR-SURVEYS": "Malaria Atlas Project", "WORLDCLIM-2.1": "WorldClim", "MODIS-NDVI-2020": "NASA (MODIS)",
+    "WORLDPOP-2020": "WorldPop", "GHSL-SMOD-2020": "European Commission JRC (GHSL)",
+    "HYDRORIVERS-AF": "HydroSHEDS", "NE-LAKES": "Natural Earth", "GEOBOUNDARIES": "geoBoundaries (William & Mary)",
+    "WHO-MTM": "World Health Organization", "PF7": "MalariaGEN", "GBIF-PLASMODIUM": "GBIF",
+    "WHO-GHO": "World Health Organization", "MIS-REPORTS": "National malaria programmes / DHS Program",
+    "WHO-REPORT-2020": "World Health Organization",
+}
+
+# Backend EvidenceSource.evidence_type choices (backend/apps/evidence/models.py).
+BACKEND_EVIDENCE_TYPE = {
+    "survey": "survey", "survey_source": "survey", "survey_report": "survey", "national_survey_report": "survey",
+    "therapeutic_efficacy_study": "survey", "marker_study": "survey", "study_collection": "survey",
+    "model_output": "model_output", "report": "publication", "country_report": "other",
+    "country_indicator": "other", "covariate": "other", "population": "other", "boundary": "other",
+    "genomic": "survey", "presence_only": "other",
+}
+
+# Stable backend ids: the backend requires evidence ids of the form E001
+# (EvidenceSource.evidence_id regex ^E\d{3,}$). ML ids are mapped once and the
+# mapping is committed, so an id never changes between runs. ML ids start at
+# E10001 to stay clear of hand-entered backend ids (E001...).
+EVIDENCE_MAP_FILE = config.ML_ROOT / "config" / "evidence_id_map.json"
+BACKEND_ID_START = 10001
+
+
+def efficacy_pool_evidence_id() -> str:
+    return f"ML-EFFICACY-POOL-{config.ml()['model_version']}"
+
+
+def marker_trend_evidence_id() -> str:
+    return f"ML-MARKER-TRENDS-{config.ml()['model_version']}"
+
+
+def assign_backend_ids(ml_ids, path=None) -> dict:
+    """Return {ml_id: 'E1xxxx'}, extending and saving the committed map for new ids."""
+    import json
+
+    path = path or EVIDENCE_MAP_FILE
+    mapping = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    used = [int(v[1:]) for v in mapping.values()]
+    nxt = max(used + [BACKEND_ID_START - 1]) + 1
+    changed = False
+    for mid in sorted(set(ml_ids)):
+        if mid not in mapping:
+            mapping[mid] = f"E{nxt}"
+            nxt += 1
+            changed = True
+    if changed:
+        path.write_text(json.dumps(dict(sorted(mapping.items())), indent=1) + "\n", encoding="utf-8")
+    return mapping
+
+
 def license_status(text) -> str:
     """DATA.md section 10: flag anything that is not clearly open for redistribution."""
     t = str(text or "").lower().replace("-", " ").replace("_", " ")
@@ -112,6 +165,17 @@ def record_rows() -> list[dict]:
                  "citation": "See MODEL_CARD.md and data/processed/model_metadata.json",
                  "limitations": ["Model-based estimate, not an observed measurement.",
                                  "2020 values reflect latest survey years (KEN/TZA 2016)."]})
+    rows.append({"evidence_id": efficacy_pool_evidence_id(),
+                 "source_name": f"Malaria WatchAI random-effects pooling of WHO TES studies v{mv}",
+                 "evidence_type": "model_output", "accessed_at": io.run_timestamp(), "license": "project output",
+                 "citation": "ml/src/drug_efficacy/efficacy.py; study records cite WHO-MTM",
+                 "limitations": ["Statistical pooling of purposive study sites; not a national survey."]})
+    rows.append({"evidence_id": marker_trend_evidence_id(),
+                 "source_name": f"Malaria WatchAI resistance-marker trend model v{mv}",
+                 "evidence_type": "model_output", "accessed_at": io.run_timestamp(), "license": "project output",
+                 "citation": "ml/src/resistance/trends.py; observations cite WHO-MTM and PF7",
+                 "limitations": ["Binomial GLM did not beat simple baselines in validation; "
+                                 "predictions are not recommended for decisions."]})
     s = pd.concat([gpd.read_parquet(p / f).drop(columns="geometry") for f in ("surveys.parquet", "surveys_pv.parquet")])
     src = s.dropna(subset=["source_id"]).groupby("source_id").agg(
         title=("source_title", "first"), citation=("citation", "first"), country=("country", "first"),
@@ -150,7 +214,14 @@ def build() -> pd.DataFrame:
     lic = reg["license"].where(~reg["license"].isin(["see parent"]), parent.map(
         reg.set_index("evidence_id")["license"]))
     reg["license_status"] = lic.map(license_status)
-    reg.loc[reg["evidence_id"].str.startswith("MODEL-"), "license_status"] = "project output"
+    is_ml = reg["evidence_id"].str.startswith(("MODEL-", "ML-"))
+    reg.loc[is_ml, "data_classification"] = "modelled"
+    reg.loc[is_ml, "license_status"] = "project output"
+    reg["provider"] = key.map(PROVIDERS)
+    reg.loc[is_ml, "provider"] = "Malaria WatchAI ML pipeline"
+    reg["provider"] = reg["provider"].fillna("Unknown - verify")
+    reg["backend_evidence_type"] = reg["evidence_type"].map(BACKEND_EVIDENCE_TYPE).fillna("other")
+    reg["backend_evidence_id"] = reg["evidence_id"].map(assign_backend_ids(reg["evidence_id"]))
     return reg
 
 

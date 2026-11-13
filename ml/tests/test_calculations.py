@@ -170,3 +170,9 @@ def test_k13_parsing():
     assert classify_k13("A578S") == (False, False)     # common African variant, not validated
     assert classify_k13("P441L") == (False, True)
     assert classify_k13(None) == (False, False)
+
+
+def test_wilson_ci_contains_estimate_exactly_at_bounds():
+    lo, hi = wilson_ci([0, 10, 3], [10, 10, 10])
+    assert lo[0] == 0.0 and hi[1] == 1.0
+    assert (lo <= np.array([0, 1, 0.3])).all() and (hi >= np.array([0, 1, 0.3])).all()

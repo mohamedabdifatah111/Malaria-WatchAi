@@ -23,6 +23,7 @@ import pandas as pd
 from ml.src import config, io
 from ml.src.data import boundaries
 from ml.src.drug_efficacy.meta import dersimonian_laird, inv_logit, logit_transform
+from ml.src.evidence import efficacy_pool_evidence_id
 from ml.src.resistance.markers import _country_from_name, wilson_ci
 
 log = logging.getLogger("ml.efficacy")
@@ -104,7 +105,7 @@ def pool(studies: pd.DataFrame) -> pd.DataFrame:
                         "year_range": f"{int(g['year_start'].min())}-{int(g['year_end'].max())}" if len(g) else None,
                         "n_sites": int(g["site_name"].nunique()), "n_adm1": int(g["region_id"].nunique()),
                         "source_id": "WHO-MTM",
-                        "evidence_ids": ["WHO-MTM"] + sorted(g["study_id"].tolist())}
+                        "evidence_ids": [efficacy_pool_evidence_id(), "WHO-MTM"] + sorted(g["study_id"].tolist())}
                 if len(g) < cfg["min_studies_for_pooling"]:
                     rows.append({**base, "status": "insufficient_data",
                                  "method": f"not pooled (< {cfg['min_studies_for_pooling']} studies)"})

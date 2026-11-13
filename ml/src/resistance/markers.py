@@ -44,8 +44,12 @@ def wilson_ci(k, n, level: float = 0.95) -> tuple[np.ndarray, np.ndarray]:
         den = 1 + z ** 2 / n
         centre = (p + z ** 2 / (2 * n)) / den
         half = z * np.sqrt(p * (1 - p) / n + z ** 2 / (4 * n ** 2)) / den
-        lo = np.where(n > 0, np.clip(centre - half, 0, 1), np.nan)
-        hi = np.where(n > 0, np.clip(centre + half, 0, 1), np.nan)
+        # Exact bounds at 0 and n events, and never exclude the point estimate
+        # (floating-point error otherwise leaves lo ~1e-18 above p = 0).
+        lo = np.where(k <= 0, 0.0, np.minimum(np.clip(centre - half, 0, 1), p))
+        hi = np.where(k >= n, 1.0, np.maximum(np.clip(centre + half, 0, 1), p))
+        lo = np.where(n > 0, lo, np.nan)
+        hi = np.where(n > 0, hi, np.nan)
     return lo, hi
 
 

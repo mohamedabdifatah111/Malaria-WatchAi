@@ -178,3 +178,17 @@ def test_licence_flags():
     assert license_status("CC BY 4.0; per-record permissions_info applies").startswith("mixed")
     reg = pd.read_parquet(P / "evidence.parquet")
     assert reg["license_status"].notna().all()
+
+
+def test_backend_evidence_ids_stable_and_complete(tmp_path):
+    import re
+    from ml.src.evidence import assign_backend_ids
+    reg = pd.read_parquet(P / "evidence.parquet")
+    assert reg["backend_evidence_id"].notna().all()
+    assert reg["backend_evidence_id"].map(lambda v: bool(re.fullmatch(r"E\d{3,}", v))).all()
+    assert reg["backend_evidence_id"].is_unique
+    # assignment is append-only: existing ids never move when new ones are added
+    m = tmp_path / "map.json"
+    first = assign_backend_ids(["A", "C"], path=m)
+    second = assign_backend_ids(["A", "B", "C"], path=m)
+    assert second["A"] == first["A"] and second["C"] == first["C"] and second["B"] not in first.values()
