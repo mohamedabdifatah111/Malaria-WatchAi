@@ -146,3 +146,35 @@ def test_model_outputs_carry_generation_time_and_methods():
                   "uncertainty_method"):
             assert k in meta, (f, k)
         assert "generated_at" in pd.read_parquet(P / f).columns
+
+
+CLASSIFIED = ["surveys.parquet", "prevalence_grid.parquet", "prevalence_district.parquet",
+              "prevalence_uncertainty.parquet", "pop_at_risk.parquet", "species.parquet",
+              "efficacy_studies.parquet", "efficacy_pooled.parquet", "marker_observations.parquet",
+              "marker_trends.parquet", "marker_predictions.parquet", "survey_priority.parquet",
+              "evidence.parquet"]
+
+
+@pytest.mark.parametrize("name", CLASSIFIED)
+def test_data_classification_present(name):
+    """DATA.md section 4: every output says whether its data is observed or modelled."""
+    d = pd.read_parquet(P / name)
+    assert "data_classification" in d.columns
+    vals = set(d["data_classification"].dropna())
+    assert vals and all(v.split(" ")[0] in {"observed", "modelled"} for v in vals), vals
+    assert not any("synthetic" in v for v in vals)
+
+
+def test_prevalence_classification_matches_source_type():
+    d = pd.read_parquet(P / "prevalence_district.parquet")
+    assert (d["data_classification"] == d["source_type"]).all()
+
+
+def test_licence_flags():
+    from ml.src.evidence import license_status
+    assert license_status("CC BY-NC-SA 3.0 IGO (WHO)").startswith("restricted")
+    assert license_status("CC BY 4.0 (WorldPop)").startswith("open")
+    assert license_status("VERIFY_LICENSE").startswith("unverified")
+    assert license_status("CC BY 4.0; per-record permissions_info applies").startswith("mixed")
+    reg = pd.read_parquet(P / "evidence.parquet")
+    assert reg["license_status"].notna().all()

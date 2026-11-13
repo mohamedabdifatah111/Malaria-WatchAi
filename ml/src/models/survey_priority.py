@@ -112,6 +112,7 @@ def rank(cells: pd.DataFrame, surveys: pd.DataFrame, bins: dict) -> pd.DataFrame
     out["year"] = config.prediction_year()
     out["model_version"] = config.ml()["model_version"]
     out["source_type"] = "modelled"
+    out["data_classification"] = "modelled"
     out["evidence_ids"] = [[model_evidence_id()] + DATASET_EVIDENCE for _ in range(len(out))]
     out["note"] = ("Planning aid: ranks where one new survey would most reduce model uncertainty x people. "
                    "Ignores cost, access, seasonality and non-public programme data.")

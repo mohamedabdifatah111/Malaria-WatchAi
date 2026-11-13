@@ -84,6 +84,7 @@ def study_table(tes: pd.DataFrame) -> pd.DataFrame:
     for c in ("prediction_interval_lower", "prediction_interval_upper", "heterogeneity_i2"):
         out[c] = np.nan
     out["evidence_ids"] = [["WHO-MTM", sid] for sid in out["study_id"]]
+    out["data_classification"] = "observed"
     return out
 
 
@@ -127,6 +128,7 @@ def pool(studies: pd.DataFrame) -> pd.DataFrame:
                              "policy_review_note": ("WHO 10% treatment-failure threshold is a signal for policy "
                                                     "review, not a treatment recommendation.")})
     p = pd.DataFrame(rows)
+    p["data_classification"] = "modelled"  # statistical (meta-analysis) estimate
     p["geographic_note"] = np.where(p["n_adm1"] <= 2, "concentrated in <=2 ADM1 regions; not a national "
                                     "estimate without qualification", "multiple regions")
     return p

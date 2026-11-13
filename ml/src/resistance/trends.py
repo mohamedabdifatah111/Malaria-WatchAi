@@ -96,6 +96,7 @@ def trend_table(obs: pd.DataFrame) -> pd.DataFrame:
     t = pd.concat(rows, ignore_index=True)
     t["marker_label"] = t["marker"].map(MARKERS)
     t["interpretation_note"] = "Marker frequency is not a clinical treatment-failure rate."
+    t["data_classification"] = "observed (observed_* columns); modelled (predicted_* columns)"
     return t
 
 
@@ -183,7 +184,7 @@ def run() -> dict:
     obs, qa = observations()
     cols = ["country", "region_id", "admin_level", "site_name", "marker", "marker_label", "year", "n_tested",
             "n_mutant", "frequency", "confidence_interval_lower", "confidence_interval_upper", "source",
-            "source_id", "location_precision", "data_status", "evidence_ids"]
+            "source_id", "location_precision", "data_status", "data_classification", "evidence_ids"]
     io.write_parquet(obs[cols], "marker_observations.parquet", {"units": {"frequency": "proportion 0-1"}})
     trends = trend_table(obs)
     io.write_parquet(trends, "marker_trends.parquet")
@@ -202,6 +203,7 @@ def run() -> dict:
         fc["note"] = ("GLM forecast shown for transparency; it did not beat the last-observed / "
                       "country-average baselines in validation, so prefer the latest observed frequency.")
     preds = pd.concat([val, fc], ignore_index=True)
+    preds["data_classification"] = "modelled"
     io.write_parquet(preds, "marker_predictions.parquet")
     qa["trend_status"] = trends.drop_duplicates(["marker", "country"]).groupby("status").size().to_dict()
     return qa

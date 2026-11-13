@@ -49,6 +49,38 @@ DATASETS = {
 }
 
 
+# DATA.md section 4: observed / modelled / synthetic (no synthetic data is used).
+CLASSIFICATION = {
+    "MAP-PR-SURVEYS": "observed", "WORLDCLIM-2.1": "modelled", "MODIS-NDVI-2020": "observed",
+    "WORLDPOP-2020": "modelled", "GHSL-SMOD-2020": "modelled", "HYDRORIVERS-AF": "modelled",
+    "NE-LAKES": "observed", "GEOBOUNDARIES": "observed", "WHO-MTM": "observed", "PF7": "observed",
+    "GBIF-PLASMODIUM": "observed", "WHO-GHO": "observed", "MIS-REPORTS": "observed",
+    "WHO-REPORT-2020": "observed",
+}
+CLASSIFICATION_NOTE = {
+    "WORLDCLIM-2.1": "interpolated climatology from station data",
+    "WORLDPOP-2020": "modelled population distribution, not a census count",
+    "GHSL-SMOD-2020": "model-derived settlement classification",
+    "HYDRORIVERS-AF": "river network derived from elevation models",
+    "MODIS-NDVI-2020": "satellite measurement, aggregated (annual median)",
+    "WHO-GHO": "routinely reported cases",
+}
+
+
+def license_status(text) -> str:
+    """DATA.md section 10: flag anything that is not clearly open for redistribution."""
+    t = str(text or "").lower().replace("-", " ").replace("_", " ")
+    if not t or "verify" in t:
+        return "unverified - check before release"
+    if "nc" in t.replace("-", " ").split() or "non-commercial" in t or "non commercial" in t             or "noncommercial" in t or "by-nc" in str(text).lower():
+        return "restricted - non-commercial terms; check before redistribution"
+    if "open database license" in t or "odbl" in t:
+        return "open - attribution + share-alike (ODbL) for derived databases"
+    if "per record" in t or "per report" in t or "per map record" in t or "permissions" in t:
+        return "mixed - per-record terms; check before redistribution"
+    return "open - attribution required"
+
+
 def _manifest() -> pd.DataFrame:
     return pd.read_csv(config.manifest_path())
 
@@ -110,6 +142,15 @@ def build() -> pd.DataFrame:
     reg = pd.DataFrame(dataset_rows() + record_rows()).drop_duplicates("evidence_id")
     for c in ("manifest_source_ids", "limitations"):
         reg[c] = reg[c].apply(lambda v: v if isinstance(v, list) else [])
+    parent = reg.get("parent_evidence_id", pd.Series(None, index=reg.index))
+    key = reg["evidence_id"].where(reg["evidence_id"].isin(CLASSIFICATION.keys()), parent)
+    reg["data_classification"] = key.map(CLASSIFICATION)
+    reg.loc[reg["evidence_id"].str.startswith("MODEL-"), "data_classification"] = "modelled"
+    reg["classification_note"] = key.map(CLASSIFICATION_NOTE)
+    lic = reg["license"].where(~reg["license"].isin(["see parent"]), parent.map(
+        reg.set_index("evidence_id")["license"]))
+    reg["license_status"] = lic.map(license_status)
+    reg.loc[reg["evidence_id"].str.startswith("MODEL-"), "license_status"] = "project output"
     return reg
 
 

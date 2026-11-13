@@ -150,6 +150,7 @@ def aggregate_regions(cells: pd.DataFrame, surveys: pd.DataFrame) -> pd.DataFram
     out["status"] = np.where(out["extrapolation_flag"], "extrapolated", "ok")
     out["year"] = config.prediction_year()
     out["source_type"] = "modelled"
+    out["data_classification"] = "modelled"
     out["indicator"] = "PfPR"
     out["age_band"] = "2-10"
     out["interval_level"] = 1 - ucfg["alpha"]
@@ -180,6 +181,7 @@ def observed_regions(surveys: pd.DataFrame) -> pd.DataFrame:
     o["interval_level"] = 0.95
     o = o.join(regions[["country", "region_name", "parent_id"]], on="region_id")
     o["source_type"] = "observed"
+    o["data_classification"] = "observed"
     o["indicator"] = "PfPR"
     o["age_band"] = "as surveyed (mixed)"
     o["status"] = "ok"
@@ -189,7 +191,7 @@ def observed_regions(surveys: pd.DataFrame) -> pd.DataFrame:
 
 
 DISTRICT_COLUMNS = ["country", "region_id", "region_name", "admin_level", "parent_id", "year", "indicator",
-                    "age_band", "source_type", "estimate", "lower_interval", "upper_interval",
+                    "age_band", "source_type", "data_classification", "estimate", "lower_interval", "upper_interval",
                     "interval_width", "interval_level", "nearest_survey_distance_km", "survey_density",
                     "extrapolated_population_share", "extrapolation_flag", "reliability_status",
                     "population_2020", "n_surveys", "n_examined", "n_positive", "aggregation_method",
@@ -208,7 +210,7 @@ def run() -> dict:
     spec = load_spec()
     gcells = gpd.GeoDataFrame(cells.drop(columns=["x", "y"]).assign(
         feature_id=cells["cell_id"].astype(str),  # API 4.2 /prevalence/map/
-        source_type="modelled", indicator="PfPR", age_band="2-10",
+        source_type="modelled", data_classification="modelled", indicator="PfPR", age_band="2-10",
         model_version=config.ml()["model_version"],
         evidence_ids=[[model_evidence_id()] + DATASET_EVIDENCE] * len(cells)),
         geometry=cell_polygons(cells, spec).values, crs="EPSG:4326")
@@ -224,7 +226,7 @@ def run() -> dict:
     unc_cols = ["country", "region_id", "region_name", "admin_level", "year", "estimate", "lower_interval",
                 "upper_interval", "interval_width", "interval_level", "nearest_survey_distance_km",
                 "survey_density", "extrapolated_population_share", "extrapolation_flag",
-                "reliability_status", "model_version", "evidence_ids"]
+                "reliability_status", "data_classification", "model_version", "evidence_ids"]
     io.write_parquet(mod[unc_cols], "prevalence_uncertainty.parquet",
                      {"method": metrics["uncertainty"]["method"],
                       "empirical_coverage": u["prevalence_interval"]["coverage"]})

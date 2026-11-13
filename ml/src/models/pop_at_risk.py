@@ -63,6 +63,7 @@ def tabulate(cells: pd.DataFrame) -> pd.DataFrame:
     out["population_source"] = POP_SOURCE
     out["prevalence_model_version"] = config.ml()["model_version"]
     out["source_type"] = "modelled"
+    out["data_classification"] = "modelled"
     out["uncertainty_status"] = "class totals under interval lower/upper bounds provided"
     out["evidence_ids"] = [[model_evidence_id()] + DATASET_EVIDENCE for _ in range(len(out))]
     out["note"] = "Model-based estimate of people living where modelled PfPR falls in this class; not infections."
@@ -70,7 +71,7 @@ def tabulate(cells: pd.DataFrame) -> pd.DataFrame:
             "risk_class_label", "pfpr_lower_bound", "pfpr_upper_bound", "population",
             "population_if_lower_bound", "population_if_upper_bound", "region_population_2020",
             "share_of_region_population", "population_source", "prevalence_model_version",
-            "source_type", "uncertainty_status", "evidence_ids", "note"]
+            "source_type", "data_classification", "uncertainty_status", "evidence_ids", "note"]
     return out[cols]
 
 

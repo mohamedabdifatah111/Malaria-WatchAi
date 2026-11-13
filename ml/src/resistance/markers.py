@@ -175,6 +175,7 @@ def observations() -> tuple[pd.DataFrame, dict]:
     obs["confidence_interval_lower"], obs["confidence_interval_upper"] = wilson_ci(obs["n_mutant"], obs["n_tested"])
     obs["marker_label"] = obs["marker"].map(MARKERS)
     obs["data_status"] = "observed"
+    obs["data_classification"] = "observed"
     qa["rows_by_source_marker"] = obs.groupby(["source", "marker"]).size().to_dict()
     qa["rows_by_source_marker"] = {f"{a}|{b}": int(v) for (a, b), v in qa["rows_by_source_marker"].items()}
     return obs, qa

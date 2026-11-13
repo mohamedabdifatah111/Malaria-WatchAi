@@ -167,6 +167,7 @@ def clean(raw: pd.DataFrame, species: str = "pf") -> tuple[gpd.GeoDataFrame, dic
     out["evidence_ids"] = [[f"MAP-SRC-{s}"] if pd.notna(s) else ["MAP-PR-SURVEYS"]
                            for s in out["source_id"]]
     out["data_status"] = "observed"
+    out["data_classification"] = "observed"  # DATA.md section 4
     gdf = gpd.GeoDataFrame(out.reset_index(drop=True),
                            geometry=gpd.points_from_xy(out["longitude"], out["latitude"]), crs="EPSG:4326")
     return gdf, report

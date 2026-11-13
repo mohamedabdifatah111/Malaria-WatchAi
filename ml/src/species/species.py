@@ -19,6 +19,7 @@ import json
 import logging
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 
 from ml.src import config, io
@@ -33,7 +34,7 @@ ISO2 = {"KEN": "KE", "TZA": "TZ", "ETH": "ET"}
 
 COLUMNS = ["country", "region_id", "admin_level", "species", "record_type", "year", "year_start", "year_end",
            "positive", "examined", "n_surveys", "n_records", "value", "value_unit", "share",
-           "share_definition", "source", "source_id", "evidence_ids", "status", "limitations"]
+           "share_definition", "source", "source_id", "evidence_ids", "status", "data_classification", "limitations"]
 
 LIM_MICRO = ("Microscopy under-detects low-density and mixed infections and can misclassify "
              "P. ovale / P. malariae / P. knowlesi.")
@@ -192,7 +193,10 @@ def gaps(have: pd.DataFrame) -> pd.DataFrame:
 def run() -> pd.DataFrame:
     parts = [survey_records(), who_reported_cases(), gbif_presence(), mis_microscopy()]
     have = pd.concat([p for p in parts if len(p)], ignore_index=True)
-    out = pd.concat([have, gaps(have)], ignore_index=True).reindex(columns=COLUMNS)
+    out = pd.concat([have, gaps(have)], ignore_index=True)
+    # DATA.md section 4: every record with data is observed; no-evidence rows carry no data.
+    out["data_classification"] = np.where(out["record_type"] == "no_evidence", None, "observed")
+    out = out.reindex(columns=COLUMNS)
     io.write_parquet(out, "species.parquet", {"rules": "presence_only rows never carry shares"})
     return out
 
