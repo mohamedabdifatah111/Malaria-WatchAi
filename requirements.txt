@@ -1,4 +1,15 @@
-# Data fetch layer (other roles append their own pins below)
+# Shared Python requirements - each role appends its own pins below.
+
+# Backend core (backend engineer)
+Django>=5.2,<5.3
+djangorestframework>=3.16,<4
+django-environ>=0.12
+django-cors-headers>=4.7
+django-filter>=25.1
+drf-spectacular>=0.28
+psycopg[binary]>=3.2
+
+# Data fetch layer
 requests==2.34.2
 urllib3==2.8.0
 PyYAML==6.0.3
@@ -11,8 +22,8 @@ rasterio==1.5.2
 pystac-client==0.9.1
 planetary-computer==1.0.0
 odc-stac==0.5.3
-pytest
-# ML pipeline (ml/) - Malaria WatchAI ML engineer
+
+# ML pipeline (ml/)
 scikit-learn==1.9.1
 lightgbm==4.7.0
 scipy==1.18.1
@@ -23,3 +34,7 @@ pyproj==3.8.0
 matplotlib==3.11.2
 plotly==7.1.0
 pypdf==7.0.1
+
+# Testing
+pytest>=8
+pytest-django>=4.9

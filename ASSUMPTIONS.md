@@ -163,3 +163,195 @@ come from the pipeline run recorded in `data/processed/metrics.json` and
   did **not** beat the last-observed or country-average baselines, so forecasts are
   marked `not_recommended`.
 - A marker frequency is not a clinical treatment-failure rate.
+
+---
+
+# Platform-wide assumptions (from the backend engineer's ASSUMPTIONS.md)
+
+_Merged verbatim from `feature/backend-data`. Sections above cover the implemented data and ML pipeline; the sections below cover scope, the assistant, provenance, infrastructure and ethics._
+
+## B2. Geographic Scope
+
+
+MalariaWatchAI initially focuses on selected administrative areas in three East African countries:
+
+- Kenya
+- Tanzania
+- Ethiopia
+
+The planned study areas are:
+
+### Kenya
+- Nairobi
+- Kisumu
+- Mombasa
+- Kilifi
+- Kakamega
+
+### Tanzania
+- Dar es Salaam
+- Mwanza
+- Morogoro
+- Kagera
+- Mtwara
+
+### Ethiopia
+- Addis Ababa
+- Oromia
+- Amhara
+- Gambela
+- Benishangul-Gumuz
+
+**Assumptions:**
+
+- Geographic boundaries will be obtained from reliable sources.
+- Administrative identifiers will be used to match geographic records.
+- Administrative levels will remain consistent with the source datasets.
+- Geographic boundaries may change over time and must be versioned where necessary.
+- The selected study areas do not represent complete national coverage.
+
+## B10. AI Assistant
+
+
+MalariaWatchAI is designed to use Google's Gemini API for AI-assisted information exploration.
+
+**Assumptions:**
+
+- AI responses should be grounded in available platform evidence.
+- The assistant should identify supporting evidence where possible.
+- Missing evidence must be communicated clearly.
+- AI-generated explanations may contain errors and require verification.
+- The assistant is not a substitute for epidemiologists, clinicians or public health authorities.
+
+The assistant must not:
+
+- Diagnose individual patients.
+- Prescribe medicines or dosages.
+- Invent scientific evidence.
+- Present uncertain estimates as confirmed facts.
+- Treat weather conditions as proof of malaria transmission.
+
+Important public health conclusions should remain subject to human review.
+
+## B11. Data Quality and Provenance
+
+
+All scientific datasets should have traceable sources.
+
+**Assumptions:**
+
+- Data sources can differ in collection methods and reliability.
+- Missing values are not equivalent to zero.
+- Records may require cleaning and validation before analysis.
+- Geographic identifiers should be checked before spatial integration.
+- Data licences and attribution conditions must be respected.
+
+Each important dataset should record:
+
+- Source name.
+- Source identifier.
+- Collection or publication date.
+- Geographic coverage.
+- Reference period.
+- Methodology.
+- Licence information.
+- Validation status.
+
+Synthetic records must always be labelled as synthetic and must never be presented as real epidemiological observations.
+
+## B12. Temporal Consistency
+
+
+Malaria prevalence, environmental conditions and population datasets may refer to different years.
+
+**Assumptions:**
+
+- Reference periods must be recorded explicitly.
+- Historical estimates should use appropriately matched historical covariates.
+- Current environmental conditions must not be substituted for historical conditions without justification.
+- Population estimates should correspond as closely as possible to the relevant prevalence reference period.
+
+Temporal mismatches should be documented as limitations.
+
+## B13. Missing Data
+
+
+The system may encounter incomplete geographic, environmental or epidemiological records.
+
+**Assumptions:**
+
+- Missing data must remain distinguishable from zero.
+- Unavailable datasets should produce explicit no-data responses.
+- Missing values should not be silently replaced with invented observations.
+- Any imputation method must be documented.
+- Data availability should be communicated to users.
+
+## B14. System and Infrastructure
+
+
+The backend uses Django REST Framework and PostgreSQL with PostGIS.
+
+The frontend is designed around React, TypeScript and MapLibre GL JS.
+
+**Assumptions:**
+
+- API responses provide the primary communication mechanism between frontend and backend.
+- External services may experience downtime or rate limits.
+- API credentials must be managed securely.
+- Spatial functionality depends on correctly configured geographic libraries and database extensions.
+- Production deployment requires additional security, monitoring and performance configuration.
+
+## B15. Ethical and Responsible Use
+
+
+MalariaWatchAI is intended to support research, surveillance and evidence exploration.
+
+The platform should:
+
+- Avoid exposing patient-identifiable information.
+- Communicate uncertainty and limitations.
+- Avoid stigmatizing geographic communities.
+- Avoid unsupported public health conclusions.
+- Respect data ownership and licensing requirements.
+- Encourage consultation with qualified public health professionals.
+
+The platform does not replace official malaria surveillance systems or clinical decision-making.
+
+## B16. Known Project Limitations
+
+
+The following limitations must be considered during development and demonstration:
+
+1. Some geographic areas may not yet have validated boundary data.
+2. Malaria prevalence datasets may be incomplete or unavailable.
+3. Drug efficacy and resistance evidence may have uneven geographic coverage.
+4. Species-specific records may be insufficient for reliable distribution modelling.
+5. Environmental data does not independently establish malaria transmission.
+6. Population exposure estimates depend on the quality and compatibility of their input datasets.
+7. AI-generated explanations require evidence grounding and human verification.
+8. Spatial model accuracy depends on the availability and quality of training data.
+
+These limitations should be updated as the project progresses.
+
+## B17. Review and Updates
+
+
+This document should be reviewed whenever:
+
+- New datasets are introduced.
+- Scientific methods change.
+- Geographic coverage expands.
+- Model assumptions are revised.
+- AI capabilities change.
+- Important data quality issues are discovered.
+
+All changes should be documented to maintain transparency and reproducibility.
+
+---
+
+**Document status:** Development assumptions and limitations.
+
+**Project:** MalariaWatchAI
+
+**Purpose:** Scientific transparency, responsible development and reproducibility.
+

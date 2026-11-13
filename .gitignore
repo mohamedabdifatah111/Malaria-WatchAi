@@ -4,6 +4,9 @@ __pycache__/
 .venv/
 venv/
 .env
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
 
 # Data
 data/raw/*
@@ -41,3 +44,26 @@ data/raw/species/*
 # ML pipeline: generated artefacts are rebuilt by `python -m ml.src.pipeline`
 ml/outputs/*
 !ml/outputs/.gitkeep
+
+# Environment files (keep only the example)
+.env.*
+!.env.example
+
+# Django
+staticfiles/
+media/
+uploads/
+db.sqlite3
+*.sqlite3
+
+# Testing
+.coverage
+htmlcov/
+
+# Keys and certificates
+*.pem
+*.key
+
+# OS files
+.DS_Store
+Thumbs.db
