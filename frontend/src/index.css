@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* Design tokens: deep navy / teal / muted green, amber warning, red critical. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-navy-950: #0a1f33;
+  --color-navy-900: #0f2d4a;
+  --color-navy-800: #163b5f;
+  --color-navy-700: #1f4d78;
+  --color-teal-700: #0f766e;
+  --color-teal-600: #0d9488;
+  --color-teal-50: #effaf8;
+  --color-moss-600: #4d7c5b;
+  --color-moss-50: #f1f6f2;
+  --color-amber-700: #b45309;
+  --color-amber-50: #fff8eb;
+  --color-crit-700: #b91c1c;
+  --color-crit-50: #fdf2f2;
+  --color-canvas: #f5f6f7;
+  --color-line: #e3e6ea;
+  --color-ink: #16202b;
+  --color-ink-2: #4a5563;
+  --color-ink-3: #6b7480;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus everywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-teal-600);
+  outline-offset: 2px;
+}
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #eef1f4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
