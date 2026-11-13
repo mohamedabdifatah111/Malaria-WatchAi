@@ -28,3 +28,16 @@ build/
 
 # Generated files
 *.log
+
+# Data fetch layer: only the manifest and the hand-entered MIS template are committed
+!data/manifest.csv
+!data/raw/species/
+data/raw/species/*
+!data/raw/species/mis_microscopy_manual.csv
+*.part
+*.egg-info/
+.pytest_cache/
+
+# ML pipeline: generated artefacts are rebuilt by `python -m ml.src.pipeline`
+ml/outputs/*
+!ml/outputs/.gitkeep

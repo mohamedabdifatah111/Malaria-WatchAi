@@ -1,0 +1,116 @@
+# Malaria WatchAI - ML pipeline configuration.
+# Shared settings (seed, CRS, grid resolution, survey years, paths) are read from
+# the repo-root config.yaml. Everything model-specific lives here so a run is
+# fully described by these two files plus data/manifest.csv.
+
+model_name: "pfpr-lightgbm"
+model_version: "0.1.0"
+
+# API contract scope (docs/API.md). Uganda raw data exists in data/raw but is
+# outside the contract, so it is not modelled.
+countries: [KEN, TZA, ETH]
+country_names:
+  KEN: Kenya
+  TZA: Tanzania
+  ETH: Ethiopia
+# Names used by WHO Threats Map / Pf7 for the same countries
+country_aliases:
+  KEN: [Kenya]
+  TZA: [Tanzania, "United Republic of Tanzania"]
+  ETH: [Ethiopia]
+
+surveys:
+  # Points up to this distance outside their country's ADM0 polygon are kept
+  # (coastal / border geocoding precision) and snapped to the nearest region.
+  coord_buffer_km: 5
+  # Observation weight = min(examined, weight_cap). Larger surveys are more
+  # precise; the cap stops a handful of very large surveys dominating.
+  weight_cap: 500
+  # Prediction target: PfPR in 2-10 year olds by microscopy (MAP convention).
+  prediction_age: [2, 10]
+  prediction_method: microscopy
+
+covariates:
+  # WorldClim 2.1 bioclim band numbers (1970-2000 climatology, NOT 2020 weather)
+  worldclim_bands:
+    temp_mean_c: 1
+    temp_seasonality: 4
+    precip_annual_mm: 12
+    precip_seasonality: 15
+  # HydroRIVERS reaches with Strahler order >= this count as "water"
+  river_min_strahler: 3
+
+features:
+  - temp_mean_c
+  - temp_seasonality
+  - precip_annual_mm
+  - precip_seasonality
+  - elevation_m
+  - ndvi_2020
+  - log_pop_density
+  - urban_class
+  - dist_water_km
+  - year
+  - lower_age
+  - upper_age
+  - diag_rdt
+# Raw lon/lat are deliberately NOT features (see MODEL_CARD.md).
+include_coordinates: false
+
+validation:
+  block_size_km: 100
+  n_folds: 5
+  random_split_folds: 5
+
+idw:
+  k_neighbours: 15
+  power: 2.0
+
+lightgbm:
+  n_estimators: 500
+  learning_rate: 0.03
+  num_leaves: 15
+  min_child_samples: 20
+  subsample: 0.8
+  subsample_freq: 1
+  colsample_bytree: 0.8
+  reg_lambda: 1.0
+  verbose: -1
+
+uncertainty:
+  alpha: 0.10                     # 90% prediction intervals
+  distance_bins_km: [0, 10, 25, 50, 100]   # lower edges; last bin is open-ended
+  min_residuals_per_bin: 30
+  extrapolation_distance_km: 100  # beyond this from any survey -> extrapolated
+  low_reliability_distance_km: 25
+  density_radius_km: 50
+  covariate_range_quantiles: [0.005, 0.995]
+
+risk_classes:                     # PfPR proportion, lower bound inclusive
+  - {key: very_low, label: "Below 1%", lower: 0.0, upper: 0.01}
+  - {key: low, label: "1% to below 10%", lower: 0.01, upper: 0.10}
+  - {key: moderate, label: "10% to below 35%", lower: 0.10, upper: 0.35}
+  - {key: high, label: "35% and above", lower: 0.35, upper: 1.0000001}
+
+efficacy:
+  # WHO Threats Map DRUG_NAME codes for each regimen (single-regimen arms only)
+  drugs:
+    AL: [DRUG_AL]
+    DHA-PPQ: [DRUG_DHA-PPQ]
+    AS-AQ: [DRUG_AS-AQ]
+  followup_days: [28, 42]
+  min_studies_for_pooling: 3
+  who_failure_threshold: 0.10
+
+resistance:
+  # pfkelch13 markers of artemisinin partial resistance, transcribed from
+  # Table 4 of the WHO Report on antimalarial drug efficacy, resistance and
+  # response (2020), data/guidelines/who_drug_efficacy_report_2020.pdf (p.24).
+  # Later WHO updates may have promoted candidates (e.g. C469Y) - re-check the
+  # current WHO list before reusing this config for a newer analysis.
+  k13_validated: [F446I, N458Y, M476I, Y493H, R539T, I543T, P553L, R561H, P574L, C580Y, R622I, A675V]
+  k13_candidate: [P441L, G449A, C469F, C469Y, A481V, R515K, P527H, N537I, N537D, G538V, V568G]
+  min_years_for_trend: 3
+  min_total_tested_for_trend: 50
+  prediction_year: 2020
+  max_extrapolation_years: 3

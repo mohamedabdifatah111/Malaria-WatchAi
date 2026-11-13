@@ -1,0 +1,40 @@
+# Malaria Atlas Lab — shared settings (no secrets here).
+seed: 42
+
+countries:
+  # ISO3 -> ISO2 (ISO2 is used by the WHO Threats Map and GBIF)
+  KEN: KE
+  UGA: UG
+  TZA: TZ
+  ETH: ET
+
+# lon_min, lat_min, lon_max, lat_max covering all four countries (+ small buffer)
+bbox: [28.8, -12.0, 48.2, 15.1]
+
+prediction_year: 2020
+survey_years: [2000, 2024]
+
+crs:
+  storage: "EPSG:4326"
+  area: "ESRI:102022"      # Africa Albers Equal Area
+  distance: "ESRI:102023"  # Africa Equidistant Conic
+
+grid_resolution_m: 5000
+
+paths:
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  guidelines: data/guidelines
+  manifest: data/manifest.csv
+
+fetch:
+  user_agent: "malaria-atlas-lab-fetch/0.1 (hackathon research project)"
+  timeout_s: 120
+  retries: 4
+  # HydroLAKES is ~820 MB; default to Natural Earth lakes and only pull it with --full
+  hydrolakes: false
+
+agent:
+  model: "qwen2.5:7b"
+  fallback_model: "qwen2.5:3b"
