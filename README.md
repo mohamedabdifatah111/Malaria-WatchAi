@@ -23,7 +23,7 @@ platform for Kenya, Tanzania and Ethiopia.
 - Machine Learning: Python, Scikit-learn, LightGBM
 - Geospatial: GeoPandas, Rasterio
 - Maps: MapLibre
-- AI: Local LLM with Ollama
+- AI: Google Gemini API (via the backend; summaries only, number-checked against evidence)
 
 ## Geographic Scope
 

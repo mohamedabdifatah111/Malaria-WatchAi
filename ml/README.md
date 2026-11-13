@@ -90,6 +90,19 @@ the matched field names, and a `strong`/`weak` label (1-2 significant digits can
 match by coincidence - a reviewer should look at those). The backend should call
 it before a brief can be submitted for human approval.
 
+## Loading outputs into the backend
+
+```bash
+cd backend
+python manage.py import_boundaries ../data/raw/boundaries/geoBoundaries-KEN-ADM1.geojson --country KEN --level ADM1 --id-field shapeID
+#   ...repeat for KEN/TZA/ETH x ADM1 then ADM2
+python manage.py import_ml_outputs --dry-run    # mapping report, writes nothing
+python manage.py import_ml_outputs              # idempotent: replaces previously imported ML rows
+```
+
+Mapping rules and skip reasons: `backend/apps/core/ml_import.py`; evidence ids map to
+backend ids via `ml/config/evidence_id_map.json` (committed - do not hand-edit).
+
 ## Code map
 
 ```

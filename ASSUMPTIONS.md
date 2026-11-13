@@ -134,6 +134,46 @@ come from the pipeline run recorded in `data/processed/metrics.json` and
   matched field names for human review. The check does not verify wording, units
   or which place a number belongs to - human approval remains required.
 
+## Gemini AI assistant (implemented)
+
+- The assistant uses the **Google Gemini API** (`GEMINI_MODEL`, default
+  `gemini-3.8-flash`), called only by the backend
+  (`backend/apps/assistant/services/gemini.py`).
+- Gemini writes only the brief's short summary. Findings are still produced by the
+  backend tools from stored records, each citing its evidence id.
+- **What is sent to Google:** the place name, the findings and the list of missing
+  evidence - aggregated, public surveillance data. The user's question is **never
+  sent** (docs/API.md section 9). No personal or patient data is stored or sent.
+  This is a hosted service: text leaves the machine, unlike a local model.
+- Every number in Gemini's reply must match a finding (backend grounding check);
+  otherwise, and on a missing key, timeout, HTTP error or safety block, the
+  deterministic template summary is used. The outcome is logged in
+  `AssistantRun.grounding_result.summary_generation`.
+- The check catches invented or computed numbers, not wrong wording or a value
+  attributed to the wrong place; human approval remains required before a brief is
+  marked approved.
+- The API key lives only in `.env` (`GEMINI_API_KEY`), never in git; tests always
+  run with the key blanked.
+- Gemini model ids change over time (Google deprecates older models with notice);
+  `GEMINI_MODEL` can be switched without code changes.
+
+## Backend import of ML outputs
+
+- `python manage.py import_ml_outputs` loads `data/processed` into the backend
+  tables. Rows are matched to regions by geoBoundaries `shapeID`
+  (`Region.external_id`) and skipped, with a reason, when a constraint cannot be
+  met - never altered to fit:
+  - country-level (ADM0) rows: the backend's Region table holds ADM1/ADM2 only;
+  - species `country_report`, `survey_report` and `mixed infection` rows: not in
+    the backend's species/record-type lists (they remain in `species.parquet` and
+    the ML lookups);
+  - survey rows with non-whole positive counts in the source.
+- ML evidence ids are mapped to backend ids (`E10001`...) through the committed
+  `ml/config/evidence_id_map.json`, so ids never change between runs. Each backend
+  row cites one evidence source: the model output for modelled rows, the dataset or
+  study for observed rows.
+- Population-at-risk counts are rounded to whole persons on import.
+
 ## Drug efficacy
 
 - Source: WHO Malaria Threats Map therapeutic efficacy studies (P. falciparum).

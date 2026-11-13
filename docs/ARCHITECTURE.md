@@ -154,6 +154,12 @@ Responsible for AI-assisted information access.
 
 The intended integration uses Google's Gemini API.
 
+**Implementation status:** implemented in `backend/apps/assistant/services/gemini.py`. Gemini writes
+only the brief summary from the findings the tools retrieved; the user's question is not sent; every
+number in the reply is checked against the findings (`services/grounding.py`), and the template summary
+is used when no key is configured or the reply fails a check. Configure `GEMINI_API_KEY` and
+`GEMINI_MODEL` in `.env`. ML outputs are loaded with `python manage.py import_ml_outputs`.
+
 The assistant is designed to help users explore available malaria evidence and interpret system outputs.
 
 AI responses should:

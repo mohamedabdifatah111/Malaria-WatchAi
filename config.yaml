@@ -35,6 +35,9 @@ fetch:
   # HydroLAKES is ~820 MB; default to Natural Earth lakes and only pull it with --full
   hydrolakes: false
 
+# AI assistant: Google Gemini API, called by the backend only (backend/apps/assistant).
+# The key and model are set in .env (GEMINI_API_KEY, GEMINI_MODEL); this entry is
+# informational so every role sees the same choice.
 agent:
-  model: "qwen2.5:7b"
-  fallback_model: "qwen2.5:3b"
+  provider: "gemini"
+  model: "gemini-3.8-flash"
