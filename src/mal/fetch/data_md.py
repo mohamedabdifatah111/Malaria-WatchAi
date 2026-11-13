@@ -1,9 +1,15 @@
-"""Render DATA.md from data/manifest.csv (never edit DATA.md by hand)."""
+"""Render docs/DATA_MANIFEST.md from data/manifest.csv (never edit it by hand).
+
+DATA.md at the repo root is the team's central, hand-maintained data reference;
+this module only writes the generated per-file manifest it links to.
+"""
 from __future__ import annotations
 
 from collections import defaultdict
 
 from mal.config import ROOT
+
+MANIFEST_MD = ROOT / "docs" / "DATA_MANIFEST.md"
 from mal.fetch._common import read_manifest
 
 # source_id prefix -> (family title, what it is used for, fallback if access fails)
@@ -61,9 +67,10 @@ def write_data_md() -> None:
         groups[family_of(sid)].append(row)
 
     out = [
-        "# DATA",
+        "# Data manifest (generated)",
         "",
         "Generated from `data/manifest.csv` by `python -m mal.fetch` - do not edit by hand.",
+        "The central data reference and standards are in [DATA.md](../DATA.md).",
         "All inputs are open and aggregate; no patient-level records. Raw files live in",
         "`data/raw/` (gitignored); only the manifest is committed. Licences are as stated",
         "by each provider at access time - check before redistributing any file.",
@@ -88,4 +95,5 @@ def write_data_md() -> None:
     for sid in sorted(rows):
         r = rows[sid]
         out.append(f"| {sid} | {r['rows'] or '-'} | {r['accessed_utc']} | `{r['sha256'][:12]}` | {r['url']} |")
-    (ROOT / "DATA.md").write_text("\n".join(out) + "\n", encoding="utf-8")
+    MANIFEST_MD.parent.mkdir(exist_ok=True)
+    MANIFEST_MD.write_text("\n".join(out) + "\n", encoding="utf-8")

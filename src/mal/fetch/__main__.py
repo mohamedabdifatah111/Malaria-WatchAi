@@ -2,7 +2,7 @@
 
 Each source is independent: a failure is logged and the rest still run, and
 the exit code is non-zero if anything failed. Re-runs skip files whose
-SHA-256 matches data/manifest.csv. DATA.md is regenerated at the end.
+SHA-256 matches data/manifest.csv. docs/DATA_MANIFEST.md is regenerated at the end.
 """
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def main(argv: list[str] | None = None) -> int:
 
     write_data_md()
     if failed:
-        log.error("failed sources: %s (see fallbacks in DATA.md)", ", ".join(failed))
+        log.error("failed sources: %s (see fallbacks in docs/DATA_MANIFEST.md)", ", ".join(failed))
         return 1
     return 0
 
