@@ -123,6 +123,13 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 
+# AI assistant: Google Gemini writes the brief summary from retrieved findings.
+# Leave GEMINI_API_KEY empty to use the deterministic template summary only.
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-3.8-flash")
+GEMINI_TIMEOUT_S = env.float("GEMINI_TIMEOUT_S", default=20.0)
+ASSISTANT_LLM_ENABLED = env.bool("ASSISTANT_LLM_ENABLED", default=True)
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",

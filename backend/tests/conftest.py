@@ -11,6 +11,12 @@ from apps.accounts.permissions import REVIEWER_GROUP
 
 
 @pytest.fixture(autouse=True)
+def _no_live_gemini(settings):
+    # Tests never call the real Gemini API, even if a developer's .env has a key.
+    settings.GEMINI_API_KEY = ""
+
+
+@pytest.fixture(autouse=True)
 def _clear_cache():
     # Throttle counters live in the cache; reset them so tests stay independent.
     cache.clear()

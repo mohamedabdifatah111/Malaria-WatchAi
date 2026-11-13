@@ -1,8 +1,10 @@
+from django.conf import settings
 from django.db import transaction
 
 from apps.assistant.models import AssistantBrief, AssistantRun
 from apps.core.errors import GuardrailRefusal
 
+from .gemini import GeminiConfig, summarise
 from .guardrails import check_question
 from .tools import execute_tool
 
@@ -20,6 +22,15 @@ BASE_LIMITATIONS = [
     "This is surveillance decision support, not individual diagnosis, dosing or treatment advice.",
     "Prevalence and population-at-risk lookups use the year 2020.",
 ]
+
+
+def _gemini_config():
+    return GeminiConfig(
+        api_key=getattr(settings, "GEMINI_API_KEY", ""),
+        model=getattr(settings, "GEMINI_MODEL", "gemini-3.8-flash"),
+        timeout_s=float(getattr(settings, "GEMINI_TIMEOUT_S", 20)),
+        enabled=bool(getattr(settings, "ASSISTANT_LLM_ENABLED", True)),
+    )
 
 
 def _where(r):
@@ -103,11 +114,22 @@ def build_brief(*, country, region, question):
     else:
         summary = f"There is insufficient validated evidence for {place_label}."
 
+    # Optional Gemini summary: written from the findings only (never the user's
+    # question), number-checked, and replaced by the template summary on any failure.
+    llm = summarise(_gemini_config(), place_label, findings, uncertainties)
+    if llm["used"]:
+        summary = llm["summary"]
+        limitations.append(
+            f"The summary was drafted by Google Gemini ({llm['model']}) from the findings below; every number "
+            "in it was checked against the findings. It requires human review."
+        )
+
     grounded = sum(1 for f in findings if f["evidence_ids"])
     grounding = {
         "claims": len(findings),
         "claims_with_evidence": grounded,
         "all_claims_grounded": grounded == len(findings),
+        "summary_generation": {k: llm[k] for k in ("provider", "model", "used", "reason", "grounding")},
     }
     content = {
         "summary": summary,
