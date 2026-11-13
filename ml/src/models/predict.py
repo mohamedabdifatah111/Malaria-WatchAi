@@ -207,8 +207,10 @@ def run() -> dict:
 
     spec = load_spec()
     gcells = gpd.GeoDataFrame(cells.drop(columns=["x", "y"]).assign(
+        feature_id=cells["cell_id"].astype(str),  # API 4.2 /prevalence/map/
         source_type="modelled", indicator="PfPR", age_band="2-10",
-        model_version=config.ml()["model_version"]),
+        model_version=config.ml()["model_version"],
+        evidence_ids=[[model_evidence_id()] + DATASET_EVIDENCE] * len(cells)),
         geometry=cell_polygons(cells, spec).values, crs="EPSG:4326")
     io.write_geoparquet(gcells, "prevalence_grid.parquet", {"units": {"estimate": "PfPR proportion 0-1"}})
 
@@ -233,6 +235,8 @@ def run() -> dict:
             mod[mod["admin_level"] == lvl].drop(columns=["evidence_ids"]), on="region_id")
         geo["geometry"] = geo.geometry.simplify(0.005, preserve_topology=True)
         geo["evidence_ids"] = ";".join([model_evidence_id()] + DATASET_EVIDENCE)
+        geo.insert(0, "feature_id", geo["region_id"])  # API 4.2 /prevalence/map/
+        geo["generated_at"] = io.run_timestamp()
         geo.to_file(config.processed_dir() / f"prevalence_{lvl.lower()}.geojson", driver="GeoJSON")
 
     latest = train.groupby("country")["year"].max().to_dict()

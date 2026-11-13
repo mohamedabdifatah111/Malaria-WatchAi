@@ -78,6 +78,11 @@ def study_table(tes: pd.DataFrame) -> pd.DataFrame:
         "exclusion_reason": s["exclusion_reason"],
     })
     out["status"] = np.where(out["exclusion_reason"].isna(), "ok", "excluded_from_pooling")
+    # Same shape as pooled rows (API 4.5): pooled-only statistics are null for a single study.
+    out["study_count"] = 1
+    out["year_range"] = s["YEAR_START"].astype("Int64").astype(str) + "-" + s["YEAR_END"].astype("Int64").astype(str)
+    for c in ("prediction_interval_lower", "prediction_interval_upper", "heterogeneity_i2"):
+        out[c] = np.nan
     out["evidence_ids"] = [["WHO-MTM", sid] for sid in out["study_id"]]
     return out
 
@@ -91,7 +96,8 @@ def pool(studies: pd.DataFrame) -> pd.DataFrame:
         for drug in cfg["drugs"]:
             for fu in cfg["followup_days"]:
                 g = ok[(ok["country"] == c) & (ok["drug"] == drug) & (ok["followup_days"] == fu)]
-                base = {"record_type": "pooled", "country": c, "region_id": None, "drug": drug,
+                base = {"record_type": "pooled", "study_id": f"POOLED-{c}-{drug}-D{fu}",
+                        "country": c, "region_id": None, "drug": drug,
                         "followup_days": fu, "study_count": int(len(g)),
                         "n_patients": float(g["n_patients"].sum()) if len(g) else 0.0,
                         "year_range": f"{int(g['year_start'].min())}-{int(g['year_end'].max())}" if len(g) else None,

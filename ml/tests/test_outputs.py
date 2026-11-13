@@ -95,3 +95,54 @@ def test_metrics_report_all_schemes_and_models():
     assert set(m["schemes"]) == {"spatial_block_5fold", "leave_one_adm1_out", "random_5fold"}
     for s in m["schemes"].values():
         assert set(s["models"]) == {"idw", "adm1_mean", "lightgbm"}
+
+
+# docs/API.md field lists for the endpoints the ML outputs back. Keep in sync with the contract.
+API_CONTRACT = {
+    "prevalence_district.parquet": ["country", "region_id", "region_name", "year", "indicator", "estimate",
+                                    "lower_interval", "upper_interval", "source_type", "model_version",
+                                    "evidence_ids", "status"],
+    "prevalence_grid.parquet": ["feature_id", "geometry", "estimate", "lower_interval", "upper_interval",
+                                "source_type", "model_version", "evidence_ids"],
+    "prevalence_adm2.geojson": ["feature_id", "geometry", "estimate", "lower_interval", "upper_interval",
+                                "source_type", "model_version", "evidence_ids"],
+    "prevalence_uncertainty.parquet": ["region_id", "estimate", "lower_interval", "upper_interval",
+                                       "interval_width", "nearest_survey_distance_km", "survey_density",
+                                       "extrapolation_flag", "reliability_status"],
+    "pop_at_risk.parquet": ["country", "region_id", "year", "risk_class", "population", "population_source",
+                            "prevalence_model_version", "uncertainty_status"],
+    "species.parquet": ["country", "region_id", "species", "record_type", "positive", "examined", "year",
+                        "source_id", "evidence_ids"],
+    "efficacy_studies.parquet": ["study_id", "country", "region_id", "drug", "followup_days", "n_patients",
+                                 "acpr_percent", "failure_percent", "confidence_interval_lower",
+                                 "confidence_interval_upper", "prediction_interval_lower",
+                                 "prediction_interval_upper", "heterogeneity_i2", "study_count", "year_range",
+                                 "source_id", "evidence_ids"],
+    "marker_observations.parquet": ["country", "region_id", "marker", "year", "n_tested", "n_mutant", "frequency",
+                                    "confidence_interval_lower", "confidence_interval_upper", "source_id",
+                                    "evidence_ids"],
+    "marker_trends.parquet": ["marker", "country", "year", "observed_frequency", "predicted_frequency", "n_tested",
+                              "observed_ci_lower", "observed_ci_upper", "validation_method", "source_id",
+                              "evidence_ids"],
+    "evidence.parquet": ["evidence_id", "source_name", "source_url", "publication_year", "accessed_at", "license",
+                         "evidence_type", "country", "limitations"],
+}
+API_CONTRACT["efficacy_pooled.parquet"] = API_CONTRACT["efficacy_studies.parquet"]
+
+
+@pytest.mark.parametrize("name", sorted(API_CONTRACT))
+def test_api_contract_fields(name):
+    import geopandas as gpd
+    d = gpd.read_file(P / name) if name.endswith(".geojson") else pd.read_parquet(P / name)
+    missing = [c for c in API_CONTRACT[name] if c not in d.columns]
+    assert not missing, f"{name} missing API fields {missing}"
+
+
+def test_model_outputs_carry_generation_time_and_methods():
+    import pyarrow.parquet as pq
+    for f in ("prevalence_district.parquet", "prevalence_uncertainty.parquet", "pop_at_risk.parquet"):
+        meta = json.loads(pq.read_schema(P / f).metadata[b"malaria_watchai"])
+        for k in ("model_name", "model_version", "prediction_year", "generated_at", "evaluation_method",
+                  "uncertainty_method"):
+            assert k in meta, (f, k)
+        assert "generated_at" in pd.read_parquet(P / f).columns

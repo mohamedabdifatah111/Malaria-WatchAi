@@ -32,6 +32,10 @@ def run_metadata(extra: dict | None = None) -> dict:
         "config_hash": config.config_hash(),
         "seed": config.seed(),
         "python": platform.python_version(),
+        # API section 7: every model output names its evaluation and uncertainty method.
+        "evaluation_method": "spatial block 5-fold CV (primary), leave-one-ADM1-out, random 5-fold (comparison)",
+        "uncertainty_method": "distance-stratified conformal intervals, survey sampling noise separated",
+        "source_data_registry": "data/processed/evidence.parquet",
     }
     if extra:
         meta.update(extra)
@@ -45,6 +49,8 @@ def write_parquet(df: pd.DataFrame, name: str, extra_meta: dict | None = None,
     import pyarrow.parquet as pq
 
     out = (directory or config.processed_dir()) / name
+    if "generated_at" not in df.columns:  # API section 7: visible generation timestamp
+        df = df.assign(generated_at=_RUN_TS)
     table = pa.Table.from_pandas(df, preserve_index=False)
     md = dict(table.schema.metadata or {})
     md[b"malaria_watchai"] = json.dumps(run_metadata(extra_meta), default=str).encode()
@@ -57,6 +63,8 @@ def write_parquet(df: pd.DataFrame, name: str, extra_meta: dict | None = None,
 def write_geoparquet(gdf, name: str, extra_meta: dict | None = None,
                      directory: Path | None = None) -> Path:
     out = (directory or config.processed_dir()) / name
+    if "generated_at" not in gdf.columns:
+        gdf = gdf.assign(generated_at=_RUN_TS)
     gdf.to_parquet(out, index=False)
     # Re-open to attach run metadata next to the GeoParquet 'geo' key.
     import pyarrow.parquet as pq

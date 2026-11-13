@@ -146,6 +146,9 @@ def run() -> pd.DataFrame:
     polys = boundaries.level("ADM2")[["region_id", "geometry"]]
     geo = polys.merge(pr.drop(columns=["evidence_ids"]), on="region_id")
     geo["geometry"] = geo.geometry.simplify(0.005, preserve_topology=True)
+    geo.insert(0, "feature_id", geo["region_id"])
+    geo["evidence_ids"] = ";".join([model_evidence_id()] + DATASET_EVIDENCE)
+    geo["generated_at"] = io.run_timestamp()
     geo.to_file(config.processed_dir() / "survey_priority_adm2.geojson", driver="GeoJSON")
     return pr
 

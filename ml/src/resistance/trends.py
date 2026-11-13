@@ -69,6 +69,7 @@ def trend_table(obs: pd.DataFrame) -> pd.DataFrame:
                              "observed_frequency": yr["n_mutant"] / yr["n_tested"],
                              "observed_ci_lower": lo, "observed_ci_upper": hi,
                              "sources": "; ".join(sorted(g["source"].unique())),
+                             "source_id": "; ".join(sorted(g["source_id"].unique())),
                              "evidence_ids": [sorted({e for l in g["evidence_ids"] for e in l})] * len(yr)})
         enough = yr["year"].nunique() >= r["min_years_for_trend"] and yr["n_tested"].sum() >= r["min_total_tested_for_trend"]
         varied = 0 < yr["n_mutant"].sum() < yr["n_tested"].sum()
