@@ -29,6 +29,7 @@ def _gemini_config():
         api_key=getattr(settings, "GEMINI_API_KEY", ""),
         model=getattr(settings, "GEMINI_MODEL", "gemini-3.8-flash"),
         timeout_s=float(getattr(settings, "GEMINI_TIMEOUT_S", 20)),
+        thinking_level=getattr(settings, "GEMINI_THINKING_LEVEL", "low"),
         enabled=bool(getattr(settings, "ASSISTANT_LLM_ENABLED", True)),
     )
 

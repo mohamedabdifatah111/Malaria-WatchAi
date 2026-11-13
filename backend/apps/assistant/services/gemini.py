@@ -8,8 +8,12 @@ and is never the source of a number:
 1. Only findings, uncertainties and the place name are sent.
 2. The reply passes through `check_numbers`; any number not present in the
    findings rejects the reply.
-3. On a missing key, timeout, HTTP error, safety block, empty reply or failed
-   grounding check, the deterministic template summary is kept.
+3. A reply must have finished normally (finishReason STOP) and end with a full
+   sentence; a truncated reply (for example when a thinking model spends the
+   token budget on reasoning) could otherwise read "... was 0." and still pass
+   the number check.
+4. On a missing key, timeout, HTTP error, safety block, empty or incomplete
+   reply, or failed grounding check, the deterministic template summary is kept.
 
 No Django imports: configuration is passed in, so this is testable without a database.
 """
@@ -32,11 +36,11 @@ SYSTEM_INSTRUCTION = """You write short malaria surveillance summaries for publi
 Rules you must follow:
 1. Use ONLY the findings provided. Do not add facts, places, years or sources.
 2. Copy every number exactly as written in the findings. Never calculate, add, subtract, round differently or compare numbers to create a new number.
-3. Say whether a value is modelled or observed, and which place it describes (country or a named region).
+3. Keep each value's place (country level or the named region) and keep the words 'modelled' or 'observed' only where the finding uses them; never add such a label yourself.
 4. Population figures are people living in areas at a risk level, never infected people.
 5. A resistance marker frequency is not a treatment failure rate.
 6. Never give diagnosis, dosing or treatment advice.
-7. If evidence is missing, say it is not available.
+7. Mention missing evidence only if it is listed under "Missing or partial evidence"; never claim anything else is unavailable.
 Write 3 to 5 plain sentences. No headings, lists, markdown or evidence identifiers."""
 
 
@@ -49,7 +53,9 @@ class GeminiConfig:
     api_key: str = ""
     model: str = "gemini-3.8-flash"
     timeout_s: float = 20.0
-    max_output_tokens: int = 512
+    # Thinking models count reasoning tokens against this limit; keep it generous.
+    max_output_tokens: int = 2048
+    thinking_level: str = "low"  # "" omits thinkingConfig (models without thinking)
     enabled: bool = True
 
     @property
@@ -66,12 +72,28 @@ def build_prompt(place_label: str, findings: list[dict], uncertainties: list[str
     return "\n".join(lines)
 
 
-def call_gemini(config: GeminiConfig, prompt: str, opener=urllib.request.urlopen) -> str:
-    body = {
+def _request_body(config: GeminiConfig, prompt: str, thinking: bool) -> dict:
+    gen = {"temperature": 0.2, "maxOutputTokens": config.max_output_tokens}
+    if thinking and config.thinking_level:
+        gen["thinkingConfig"] = {"thinkingLevel": config.thinking_level}
+    return {
         "systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": config.max_output_tokens},
+        "generationConfig": gen,
     }
+
+
+def call_gemini(config: GeminiConfig, prompt: str, opener=urllib.request.urlopen) -> str:
+    try:
+        return _call(config, _request_body(config, prompt, thinking=True), opener)
+    except GeminiError as exc:
+        # A model without thinking support rejects thinkingConfig with HTTP 400: retry once without it.
+        if str(exc) == "http_400" and config.thinking_level:
+            return _call(config, _request_body(config, prompt, thinking=False), opener)
+        raise
+
+
+def _call(config: GeminiConfig, body: dict, opener) -> str:
     request = urllib.request.Request(
         API_URL.format(model=config.model),
         data=json.dumps(body).encode("utf-8"),
@@ -93,10 +115,15 @@ def call_gemini(config: GeminiConfig, prompt: str, opener=urllib.request.urlopen
     candidates = payload.get("candidates") or []
     if not candidates:
         raise GeminiError("no_candidates")
+    finish = candidates[0].get("finishReason", "STOP")
     parts = (candidates[0].get("content") or {}).get("parts") or []
     text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
     if not text:
-        raise GeminiError(f"empty_reply:{candidates[0].get('finishReason', 'unknown')}")
+        raise GeminiError(f"empty_reply:{finish}")
+    if finish != "STOP":
+        raise GeminiError(f"incomplete_reply:{finish}")
+    if not text.endswith((".", "!", "?", '."', ".)")):
+        raise GeminiError("incomplete_reply:no_final_sentence")
     return text
 
 

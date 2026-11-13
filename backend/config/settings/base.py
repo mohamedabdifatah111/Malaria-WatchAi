@@ -128,6 +128,7 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
 GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-3.8-flash")
 GEMINI_TIMEOUT_S = env.float("GEMINI_TIMEOUT_S", default=20.0)
+GEMINI_THINKING_LEVEL = env("GEMINI_THINKING_LEVEL", default="low")  # "" for models without thinking
 ASSISTANT_LLM_ENABLED = env.bool("ASSISTANT_LLM_ENABLED", default=True)
 
 REST_FRAMEWORK = {

@@ -149,6 +149,12 @@ come from the pipeline run recorded in `data/processed/metrics.json` and
   otherwise, and on a missing key, timeout, HTTP error or safety block, the
   deterministic template summary is used. The outcome is logged in
   `AssistantRun.grounding_result.summary_generation`.
+- Replies must finish normally and end with a full sentence. Live testing found that
+  `gemini-3.8-flash` spends output tokens on internal reasoning; with a small token
+  limit the visible answer was cut off mid-number ("...was 0.19"). The limit is now
+  2048 tokens with `GEMINI_THINKING_LEVEL=low`, and truncated replies are rejected.
+- Gemini may not add 'modelled'/'observed' labels or missing-evidence claims that are
+  not in the findings (an earlier prompt led it to call pooled efficacy 'observed').
 - The check catches invented or computed numbers, not wrong wording or a value
   attributed to the wrong place; human approval remains required before a brief is
   marked approved.

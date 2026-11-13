@@ -106,3 +106,38 @@ def test_thought_parts_are_ignored():
 def test_prompt_lists_findings_and_gaps():
     p = build_prompt("Kisumu", FINDINGS, ["No validated parasite species evidence is available for this area."])
     assert "0.196" in p and "96.9%" in p and "parasite species" in p
+
+
+# ---------- incomplete replies (found in live testing: thinking tokens exhausted the budget) ----------
+
+def test_truncated_reply_is_rejected():
+    payload = {"candidates": [{"content": {"parts": [{"text": "In Kisumu, the modelled PfPR estimate for 2020 was 0.19"}]},
+                               "finishReason": "MAX_TOKENS"}]}
+    r = summarise(ON, "Kisumu", FINDINGS, [], opener=FakeOpener(payload=payload))
+    assert not r["used"] and r["reason"] == "incomplete_reply:MAX_TOKENS"
+
+
+def test_reply_without_final_sentence_is_rejected():
+    r = summarise(ON, "Kisumu", FINDINGS, [], opener=FakeOpener("In Kisumu, the modelled PfPR estimate was"))
+    assert not r["used"] and r["reason"] == "incomplete_reply:no_final_sentence"
+
+
+def test_thinking_config_sent_and_retried_without_on_400():
+    ok = FakeOpener("Modelled PfPR in Kisumu was 19.6%.")
+    summarise(ON, "Kisumu", FINDINGS, [], opener=ok)
+    gen = ok.requests[0]["body"]["generationConfig"]
+    assert gen["thinkingConfig"] == {"thinkingLevel": "low"} and gen["maxOutputTokens"] >= 2048
+
+    class FirstCall400:
+        def __init__(self):
+            self.inner, self.n = FakeOpener("Modelled PfPR in Kisumu was 19.6%."), 0
+
+        def __call__(self, request, timeout=None):
+            self.n += 1
+            if self.n == 1:
+                raise urllib.error.HTTPError("u", 400, "bad thinkingConfig", {}, None)
+            return self.inner(request, timeout)
+
+    opener = FirstCall400()
+    r = summarise(ON, "Kisumu", FINDINGS, [], opener=opener)
+    assert r["used"] and "thinkingConfig" not in opener.inner.requests[0]["body"]["generationConfig"]
